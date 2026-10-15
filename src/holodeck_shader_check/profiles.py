@@ -115,7 +115,15 @@ def literal_value(part, name):
         largest_bits, sign_bit, next_power = 0x7f7fffff, 0x80000000, 2.0**128
     range_message = f"Invalid scene data {name}: {precision} literal out of range ({part})"
     try:
-        decimal_value = Decimal(part[:-1] if suffix else part)
+        numeric = part[:-1] if suffix else part
+        # Decimal's C and Python implementations accept different exponent ranges.
+        # Use the 64-bit mpdecimal bound explicitly on every supported platform.
+        exponent = re.search(r"[eE]([+-]?\d+)$", numeric)
+        if exponent:
+            digits = exponent.group(1).lstrip("+-").lstrip("0")
+            if len(digits) > 18:
+                raise InvalidOperation("Decimal exponent exceeds the supported range")
+        decimal_value = Decimal(numeric)
     except InvalidOperation as error:
         raise AssertionError(range_message) from error
     magnitude = decimal_value.copy_abs()

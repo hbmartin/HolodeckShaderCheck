@@ -157,5 +157,3 @@ class RegressionHarnessTests(unittest.TestCase):
         self.assertEqual(result.testsRun, 0)
         self.assertEqual(len(result.errors), 1)
         self.assertFalse(FailingProbe.root.exists())
-
-
