@@ -1,0 +1,25 @@
+name: Release checker
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.15'
+      - run: python -m unittest discover -s tests
+        env:
+          PYTHONPATH: src
+      - run: python -m pip install setuptools wheel
+      - run: python tools/build_release.py
+      - name: Publish verified assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/*.whl dist/*.pyz dist/SHA256SUMS --verify-tag --title "$GITHUB_REF_NAME" --generate-notes

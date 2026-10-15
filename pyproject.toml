@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "holodeck-shader-check"
+version = "1.0.0"
+description = "Portable authoring contracts and regression checks for Holodeck shader libraries"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.scripts]
+holodeck-shader-check = "holodeck_shader_check.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
