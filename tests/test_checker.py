@@ -142,6 +142,21 @@ class CheckerTests(unittest.TestCase):
             code, output, _ = self.run_cli("validate", str(self.root), "--compile", "--json")
         self.assertEqual(code, 2, output)
 
+    def test_driver_stub_without_metal_component_is_operational(self):
+        unavailable=subprocess.CompletedProcess([],1,b'',b'missing Metal Toolchain')
+        with patch('shutil.which',return_value='/usr/bin/xcrun'), patch('subprocess.run',return_value=unavailable) as probe:
+            code,output,_=self.run_cli('validate',str(self.root),'--compile','--json')
+        self.assertEqual(code,2,output)
+        self.assertIn('missing Metal Toolchain',json.loads(output)['error'])
+        self.assertEqual(probe.call_args.kwargs['timeout'],5)
+        self.assertEqual(probe.call_args.kwargs['stdin'],subprocess.DEVNULL)
+
+    def test_old_python_cannot_pass_info_probe(self):
+        with patch('sys.version_info',(3,8,0)):
+            code,output,_=self.run_cli('info','--json')
+        self.assertEqual(code,2,output)
+        self.assertIn('Python 3.9',json.loads(output)['error'])
+
     def test_incomplete_mit_notices(self):
         for notice in ("Copyright fixture", "Copyright fixture Permission is hereby granted SOFTWARE."):
             with self.assertRaises(ValueError): mit_notices(notice)

@@ -42,6 +42,13 @@ def parser():
 
 def main(arguments=None):
     args = parser().parse_args(arguments)
+    if sys.version_info < (3, 9):
+        message = "The shader checker requires Python 3.9 or later"
+        if getattr(args, "json", False):
+            print(json.dumps({"valid": False, "error": message, "exitCode": 2}))
+        else:
+            print(message, file=sys.stderr)
+        return 2
     try:
         if args.command == "info":
             value = {"checkerVersion": __version__, "interfaceVersion": INTERFACE_VERSION}

@@ -172,9 +172,14 @@ class Library(Authoring):
         if shutil.which('xcrun') is None:
             raise ToolingError('SDK compilation requires Xcode and xcrun')
         for sdk in ('macosx', 'appletvos'):
-            check = subprocess.run(['xcrun', '-sdk', sdk, '--find', 'metal'], capture_output=True)
+            try:
+                check = subprocess.run(['xcrun', '-sdk', sdk, 'metal', '--version'],
+                                       capture_output=True, stdin=subprocess.DEVNULL, timeout=5)
+            except (OSError, subprocess.TimeoutExpired) as error:
+                raise ToolingError(f'Metal compiler unavailable for {sdk}: {error}') from error
             if check.returncode:
-                raise ToolingError(f'Metal compiler unavailable for {sdk}')
+                diagnostic = (check.stdout + check.stderr).decode('utf-8', errors='replace')[-2000:]
+                raise ToolingError(f'Metal compiler unavailable for {sdk}: {diagnostic}')
         with tempfile.TemporaryDirectory() as temp:
             file = pathlib.Path(temp) / 'example.metal'
             file.write_bytes(source.encode('utf-8'))

@@ -10,7 +10,7 @@ root = Path(__file__).resolve().parents[1]
 out = root / "dist"
 out.mkdir(exist_ok=True)
 subprocess.run([sys.executable, "-m", "pip", "wheel", "--no-deps", "--no-build-isolation", "--wheel-dir", str(out), str(root)], check=True)
-archive = out / "holodeck-shader-check-1.0.1.pyz"
+archive = out / "holodeck-shader-check-1.0.2.pyz"
 with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zip:
     sources = [(str(path.relative_to(root / "src")), path.read_bytes()) for path in sorted((root / "src").rglob("*.py"))]
     sources.append(("__main__.py", b"from holodeck_shader_check.cli import main\nraise SystemExit(main())\n"))

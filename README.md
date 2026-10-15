@@ -5,9 +5,9 @@ Portable authoring verification for [HolodeckShaders](https://github.com/hbmarti
 Download a versioned zipapp or wheel and its `SHA256SUMS` from this repository's GitHub releases. Verify the checksum before use. Run the zipapp with isolated Python:
 
 ```sh
-python3 -I holodeck-shader-check-1.0.1.pyz info --json
-python3 -I holodeck-shader-check-1.0.1.pyz validate /path/to/HolodeckShaders --json
-python3 -I holodeck-shader-check-1.0.1.pyz assemble /path/to/HolodeckShaders shader plasma --output /tmp/plasma.metal
+python3 -I holodeck-shader-check-1.0.2.pyz info --json
+python3 -I holodeck-shader-check-1.0.2.pyz validate /path/to/HolodeckShaders --json
+python3 -I holodeck-shader-check-1.0.2.pyz assemble /path/to/HolodeckShaders shader plasma --output /tmp/plasma.metal
 ```
 
 Alternatively install the verified wheel into a virtual environment to obtain `holodeck-shader-check`. Compilation (`validate ROOT --compile`) requires macOS and the macOS/tvOS Metal SDKs. `validate ROOT --gpu` also compiles and runs the declared GPU profiles. `render ROOT shader|snippet ID` uses an installed major-version-1 `holodeck-shader-tool`; select it with `--shader-tool /absolute/tool`, `HOLODECK_SHADER_TOOL`, or PATH. Invalid explicit overrides never fall back. Render defaults are 1280×720 at times 0,3,10; `--width`, `--height`, `--times`, and `--output-dir` override them. Outputs default to `ROOT/.cache/library/<kind>-<id>/`.
