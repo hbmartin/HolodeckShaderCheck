@@ -5,14 +5,14 @@ Portable authoring verification for [HolodeckShaders](https://github.com/hbmarti
 Download a versioned zipapp or wheel and its `SHA256SUMS` from this repository's GitHub releases. Verify the checksum before use. Run the zipapp with isolated Python:
 
 ```sh
-python3 -I holodeck-shader-check-1.0.3.pyz info --json
-python3 -I holodeck-shader-check-1.0.3.pyz validate /path/to/HolodeckShaders --json
-python3 -I holodeck-shader-check-1.0.3.pyz assemble /path/to/HolodeckShaders shader plasma --output /tmp/plasma.metal
+python3 -I holodeck-shader-check-1.1.0.pyz info --json
+python3 -I holodeck-shader-check-1.1.0.pyz validate /path/to/HolodeckShaders --json
+python3 -I holodeck-shader-check-1.1.0.pyz assemble /path/to/HolodeckShaders shader plasma --output /tmp/plasma.metal
 ```
 
-Alternatively install the verified wheel into a virtual environment to obtain `holodeck-shader-check`. Compilation (`validate ROOT --compile`) requires macOS and the macOS/tvOS Metal SDKs. `validate ROOT --gpu` also compiles and runs the declared GPU profiles. `render ROOT shader|snippet ID` uses an installed major-version-1 `holodeck-shader-tool`; select it with `--shader-tool /absolute/tool`, `HOLODECK_SHADER_TOOL`, or PATH. Invalid explicit overrides never fall back. Render defaults are 1280×720 at times 0,3,10; `--width`, `--height`, `--times`, and `--output-dir` override them. Outputs default to `ROOT/.cache/library/<kind>-<id>/`.
+Alternatively install the verified wheel into a virtual environment to obtain `holodeck-shader-check`. Compilation (`validate ROOT --compile`) requires macOS and the macOS/tvOS Metal SDKs. `validate ROOT --gpu` also compiles and runs the declared GPU profiles. `validate ROOT --gpu-only` preserves static, provenance and CPU/GPU checks while skipping SDK compilation, allowing hosts to budget those stages separately. It cannot be combined with `--compile` or `--gpu`. `render ROOT shader|snippet ID` uses an installed major-version-1 `holodeck-shader-tool`; select it with `--shader-tool /absolute/tool`, `HOLODECK_SHADER_TOOL`, or PATH. Invalid explicit overrides never fall back. Render defaults are 1280×720 at times 0,3,10; `--width`, `--height`, `--times`, and `--output-dir` override them. Outputs default to `ROOT/.cache/library/<kind>-<id>/`.
 
-Version probes disconnect stdin and time out after five seconds. Renders and probes disconnect stdin and use 120/300-second deadlines, respectively. Positive finite `HOLODECK_RENDER_TIMEOUT_SECONDS` and `HOLODECK_PROBE_TIMEOUT_SECONDS` override operation deadlines. Exit codes are 0 (pass), 1 (failed checks), and 2 (usage or unavailable tooling). `validate --json` emits one JSON result on stdout; diagnostics go to stderr.
+Backend version probes disconnect stdin and time out after five seconds. SDK availability probes run once per SDK per invocation with a 30-second deadline; each asset compilation has a 60-second deadline. Renders and probes disconnect stdin and use 120/300-second deadlines, respectively. Positive finite `HOLODECK_RENDER_TIMEOUT_SECONDS` and `HOLODECK_PROBE_TIMEOUT_SECONDS` override operation deadlines. Exit codes are 0 (pass), 1 (failed checks), and 2 (usage or unavailable tooling). `validate --json` emits one JSON result on stdout; diagnostics go to stderr.
 
 ## Library contract
 

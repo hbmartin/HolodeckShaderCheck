@@ -142,13 +142,35 @@ class CheckerTests(unittest.TestCase):
             code, output, _ = self.run_cli("validate", str(self.root), "--compile", "--json")
         self.assertEqual(code, 2, output)
 
+    def test_gpu_only_preserves_static_checks_and_skips_compilation(self):
+        with patch.object(Library, 'compile_source', side_effect=AssertionError('GPU phase compiled')), \
+             patch('holodeck_shader_check.cli.run_profiles', return_value=7) as profiles:
+            code, output, _ = self.run_cli('validate', str(self.root), '--gpu-only', '--json')
+        self.assertEqual(code, 0, output)
+        self.assertTrue(profiles.call_args.kwargs['gpu'])
+        self.assertEqual(json.loads(output)['profileChecks'], 7)
+        (self.root / 'authoring.json').write_text('{}')
+        self.assertEqual(self.run_cli('validate', str(self.root), '--gpu-only')[0], 1)
+
+    def test_compiler_probes_are_once_per_sdk_and_compiles_are_bounded(self):
+        completed = subprocess.CompletedProcess([], 0, b'', b'')
+        with patch('shutil.which', return_value='/usr/bin/xcrun'), patch('subprocess.run', return_value=completed) as commands:
+            self.library.compile_source('// first', 'first')
+            self.library.compile_source('// second', 'second')
+        probes = [call for call in commands.call_args_list if '--version' in call.args[0]]
+        compiles = [call for call in commands.call_args_list if '-c' in call.args[0]]
+        self.assertEqual(len(probes), 2)
+        self.assertEqual(len(compiles), 4)
+        self.assertTrue(all(call.kwargs['timeout'] == 30 for call in probes))
+        self.assertTrue(all(call.kwargs['timeout'] == 60 for call in compiles))
+
     def test_driver_stub_without_metal_component_is_operational(self):
         unavailable=subprocess.CompletedProcess([],1,b'',b'missing Metal Toolchain')
         with patch('shutil.which',return_value='/usr/bin/xcrun'), patch('subprocess.run',return_value=unavailable) as probe:
             code,output,_=self.run_cli('validate',str(self.root),'--compile','--json')
         self.assertEqual(code,2,output)
         self.assertIn('missing Metal Toolchain',json.loads(output)['error'])
-        self.assertEqual(probe.call_args.kwargs['timeout'],5)
+        self.assertEqual(probe.call_args.kwargs['timeout'],30)
         self.assertEqual(probe.call_args.kwargs['stdin'],subprocess.DEVNULL)
 
     def test_old_python_cannot_pass_info_probe(self):

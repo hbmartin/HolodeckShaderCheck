@@ -22,6 +22,7 @@ def parser():
     validate.add_argument("root")
     validate.add_argument("--compile", action="store_true")
     validate.add_argument("--gpu", action="store_true")
+    validate.add_argument("--gpu-only", action="store_true", help="Run GPU profiles and static checks without SDK compilation")
     validate.add_argument("--json", action="store_true")
     validate.add_argument("--shader-tool")
     for name in ("assemble", "render"):
@@ -42,6 +43,8 @@ def parser():
 
 def main(arguments=None):
     args = parser().parse_args(arguments)
+    if getattr(args, "gpu_only", False) and (args.compile or args.gpu):
+        parser().error("--gpu-only cannot be combined with --compile or --gpu")
     if sys.version_info < (3, 9):
         message = "The shader checker requires Python 3.9 or later"
         if getattr(args, "json", False):
@@ -60,7 +63,7 @@ def main(arguments=None):
                 library.configuration()
                 items = library.validate(args.compile or args.gpu)
                 audit_notices(library)
-                checks = run_profiles(library, gpu=args.gpu)
+                checks = run_profiles(library, gpu=args.gpu or args.gpu_only)
             value = {"valid": True, "assets": len(items), "profileChecks": checks}
             print(json.dumps(value) if args.json else f"Validated {len(items)} authoring assets; {checks} profile checks")
         elif args.command == "assemble":
