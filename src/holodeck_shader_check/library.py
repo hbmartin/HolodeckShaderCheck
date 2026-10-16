@@ -203,6 +203,8 @@ class Library(Authoring):
                     self.compile_source(source, item['id'])
             else:
                 self.validate_reference(item)
+        from .templates import validate_templates
+        validate_templates(self, compile_metal)
         return items
 
     def render(self, kind, asset_id, times, width=1280, height=720, output_dir=None):

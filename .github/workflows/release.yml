@@ -7,19 +7,31 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
+      - name: Fetch the immutable integration library fixture
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: hbmartin/HolodeckShaders
+          ref: fdf64347d57f00ad14a64e69bd8a7d25c9a36e41
+          path: .cache/library-fixture
           persist-credentials: false
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.15'
-      - run: python -m unittest discover -s tests
+      - name: Require CPU unit, library and license integration tests
+        run: python tools/run_tests.py
         env:
-          PYTHONPATH: src
+          HOLODECK_LIBRARY_ROOT: ${{ github.workspace }}/.cache/library-fixture
       - run: python -m pip install setuptools wheel
       - run: python tools/build_release.py
       - name: Publish verified assets
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/*.whl dist/*.pyz dist/SHA256SUMS --verify-tag --title "$GITHUB_REF_NAME" --generate-notes
+        run: |
+          task_checker_version=$(PYTHONPATH=src python -c 'from holodeck_shader_check import __version__; print(__version__)')
+          test "$GITHUB_REF_NAME" = "v$task_checker_version"
+          gh release create "$GITHUB_REF_NAME" dist/*.whl dist/*.pyz dist/SHA256SUMS --verify-tag --title "$GITHUB_REF_NAME" --generate-notes

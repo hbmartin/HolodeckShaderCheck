@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "holodeck-shader-check"
-version = "1.0.2"
+version = "1.0.3"
 description = "Portable authoring contracts and regression checks for Holodeck shader libraries"
 requires-python = ">=3.9"
 dependencies = []

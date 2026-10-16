@@ -5,9 +5,9 @@ Portable authoring verification for [HolodeckShaders](https://github.com/hbmarti
 Download a versioned zipapp or wheel and its `SHA256SUMS` from this repository's GitHub releases. Verify the checksum before use. Run the zipapp with isolated Python:
 
 ```sh
-python3 -I holodeck-shader-check-1.0.2.pyz info --json
-python3 -I holodeck-shader-check-1.0.2.pyz validate /path/to/HolodeckShaders --json
-python3 -I holodeck-shader-check-1.0.2.pyz assemble /path/to/HolodeckShaders shader plasma --output /tmp/plasma.metal
+python3 -I holodeck-shader-check-1.0.3.pyz info --json
+python3 -I holodeck-shader-check-1.0.3.pyz validate /path/to/HolodeckShaders --json
+python3 -I holodeck-shader-check-1.0.3.pyz assemble /path/to/HolodeckShaders shader plasma --output /tmp/plasma.metal
 ```
 
 Alternatively install the verified wheel into a virtual environment to obtain `holodeck-shader-check`. Compilation (`validate ROOT --compile`) requires macOS and the macOS/tvOS Metal SDKs. `validate ROOT --gpu` also compiles and runs the declared GPU profiles. `render ROOT shader|snippet ID` uses an installed major-version-1 `holodeck-shader-tool`; select it with `--shader-tool /absolute/tool`, `HOLODECK_SHADER_TOOL`, or PATH. Invalid explicit overrides never fall back. Render defaults are 1280×720 at times 0,3,10; `--width`, `--height`, `--times`, and `--output-dir` override them. Outputs default to `ROOT/.cache/library/<kind>-<id>/`.
@@ -20,7 +20,7 @@ The root `authoring.json` uses schema version 1 and exactly four fields: `schema
 
 Versioned profiles are `shared-runtime-v1` (actual shared uniforms, clamp and literal behavior), `holodeck-grid-v1` (CPU containment and GPU invalid-lane/finite checks), and `matrix-corridor-v1` (seed and long-uptime checks). Unknown profiles and missing profile assets fail; no requested check silently skips. Ordinary validation runs CPU profiles, while `--gpu` adds actual GPU checks.
 
-Source assembly preserves UTF-8 bytes and line endings. Shaders concatenate common, optional material, body, fragment without separators. Snippet harnesses retain their existing newline separators. All complete shaders, including unlisted ones, and snippet examples compile for both SDKs. Runtime delivery limits, previews, publication and editorial selection remain Holodeck responsibilities.
+Source assembly preserves UTF-8 bytes and line endings. Shaders concatenate common, optional material, body, fragment without separators. Snippet harnesses retain their existing newline separators. When `templates/` is present, validation instantiates its shader, snippet and reference directories in disposable libraries and checks them with the same metadata, assembly, contract and provenance validators. Malformed metadata, missing required files, unresolved placeholders and symlinks fail validation. Libraries without templates remain supported. Template checks never modify the selected library or rewrite upstream originals. All complete shaders, including unlisted ones, snippet examples, and instantiated shader/snippet templates compile for both SDKs with `--compile`. Runtime delivery limits, previews, publication and editorial selection remain Holodeck responsibilities.
 
 ## Development and provenance
 
@@ -28,9 +28,9 @@ The initial implementation is extracted from `hbmartin/HolodeckShaders` commit `
 
 ```sh
 PYTHONPATH=src python3 -m unittest discover -s tests
-PYTHONPATH=src HOLODECK_LIBRARY_ROOT=/path/to/HolodeckShaders python3 -m unittest discover -s tests
-PYTHONPATH=src HOLODECK_LIBRARY_ROOT=/path/to/HolodeckShaders HOLODECK_GPU_TESTS=1 python3 -m unittest discover -s tests
+HOLODECK_LIBRARY_ROOT=/path/to/HolodeckShaders python3 tools/run_tests.py
+HOLODECK_LIBRARY_ROOT=/path/to/HolodeckShaders python3 tools/run_tests.py --gpu
 python3 tools/build_release.py
 ```
 
-The build command needs setuptools and wheel in its build environment. GitHub releases contain a wheel, deterministic zipapp and checksum inventory. Release artifacts are built from the tagged source commit. Integration tests require an explicit external library root; unit tests use synthetic assets. GPU/backend tests retain independent numeric oracles and guard-removal negative controls.
+The build command needs setuptools and wheel in its build environment. GitHub releases contain a wheel, deterministic zipapp and checksum inventory. Release artifacts are built from the tagged source commit. Integration tests require an explicit external library root; unit tests use synthetic assets. `tools/run_tests.py` fails if a required integration test skips. Its default CPU suite excludes the GPU-only combined-recipe composition test; `--gpu` requires that test too. Test and release CI run CPU coverage on Ubuntu with an immutable library fixture, and test CI covers Python 3.9 and 3.15. No macOS compilation, GPU execution or composition rendering runs in CI; run those checks explicitly on a Mac with the native CLI. GPU/backend tests retain independent numeric oracles and guard-removal negative controls.
