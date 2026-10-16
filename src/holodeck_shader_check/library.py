@@ -16,6 +16,7 @@ class Library(Authoring):
     def __init__(self, root, shader_tool_path=None):
         super().__init__(root)
         self.shader_tool_path = shader_tool_path
+        self._checked_compilers = set()
 
     @staticmethod
     def reject_reference_symlink(value, label):
@@ -172,19 +173,26 @@ class Library(Authoring):
         if shutil.which('xcrun') is None:
             raise ToolingError('SDK compilation requires Xcode and xcrun')
         for sdk in ('macosx', 'appletvos'):
+            if sdk in self._checked_compilers:
+                continue
             try:
                 check = subprocess.run(['xcrun', '-sdk', sdk, 'metal', '--version'],
-                                       capture_output=True, stdin=subprocess.DEVNULL, timeout=5)
+                                       capture_output=True, stdin=subprocess.DEVNULL, timeout=30)
             except (OSError, subprocess.TimeoutExpired) as error:
                 raise ToolingError(f'Metal compiler unavailable for {sdk}: {error}') from error
             if check.returncode:
                 diagnostic = (check.stdout + check.stderr).decode('utf-8', errors='replace')[-2000:]
                 raise ToolingError(f'Metal compiler unavailable for {sdk}: {diagnostic}')
+            self._checked_compilers.add(sdk)
         with tempfile.TemporaryDirectory() as temp:
             file = pathlib.Path(temp) / 'example.metal'
             file.write_bytes(source.encode('utf-8'))
             for sdk in ('macosx', 'appletvos'):
-                subprocess.run(['xcrun', '-sdk', sdk, 'metal', '-c', str(file), '-o', str(pathlib.Path(temp) / f'{sdk}.air')], check=True)
+                try:
+                    subprocess.run(['xcrun', '-sdk', sdk, 'metal', '-c', str(file), '-o', str(pathlib.Path(temp) / f'{sdk}.air')],
+                                   check=True, stdin=subprocess.DEVNULL, timeout=60)
+                except subprocess.TimeoutExpired as error:
+                    raise ToolingError(f'Metal compilation timed out for {label} ({sdk}) after 60 seconds') from error
 
 
     def validate(self, compile_metal=False):

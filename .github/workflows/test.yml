@@ -29,4 +29,6 @@ jobs:
           HOLODECK_LIBRARY_ROOT: ${{ github.workspace }}/.cache/library-fixture
       - run: python -m pip install setuptools wheel
       - run: python tools/build_release.py
-      - run: python -I dist/holodeck-shader-check-1.0.3.pyz info --json
+      - run: |
+          task_checker_version=$(PYTHONPATH=src python -c 'from holodeck_shader_check import __version__; print(__version__)')
+          python -I "dist/holodeck-shader-check-$task_checker_version.pyz" info --json
