@@ -83,10 +83,10 @@ def require_notices(library, label, text, references, upstreams):
         elif requirement['uri'] not in text:
             raise ValueError(f'Missing {reference} CC URI in {label}')
 
-def audit_notices(library, records=None, upstreams=None):
+def audit_notices(library, records=None, upstreams=None, *, items=None, shaders=None):
     records = library.configuration()['sourceRequirements'] if records is None else records
     upstreams = library.configuration()['upstreamRequirements'] if upstreams is None else upstreams
-    items = library.assets()
+    items = library.assets() if items is None else items
     check_coverage(library, items, records, upstreams)
     for source, references in records.items():
         require_notices(library, source, library.path(source).read_text(), references, upstreams)
@@ -98,7 +98,7 @@ def audit_notices(library, records=None, upstreams=None):
         paths.extend((f'shared/{part}.metal' for part in spec['requiredShared']))
         references = [ref for path in paths for ref in records[path]]
         require_notices(library, 'example ' + item['id'], library.snippet_source(item), references, upstreams)
-    for metadata, source, *_ in library.entries()[1]:
+    for metadata, source, *_ in (library.entries()[1] if shaders is None else shaders):
         paths = [f"shaders/{metadata['id']}/body.metal"]
         paths.extend((f'shared/{part}.metal' for part in metadata['shared']))
         references = [ref for path in paths for ref in records[path]]

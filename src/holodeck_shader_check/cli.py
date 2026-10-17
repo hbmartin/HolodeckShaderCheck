@@ -60,9 +60,7 @@ def main(arguments=None):
         library = Library(args.root, getattr(args, "shader_tool", None))
         if args.command == "validate":
             with contextlib.redirect_stdout(sys.stderr):
-                library.configuration()
                 items = library.validate(args.compile or args.gpu)
-                audit_notices(library)
                 checks = run_profiles(library, gpu=args.gpu or args.gpu_only)
             value = {"valid": True, "assets": len(items), "profileChecks": checks}
             print(json.dumps(value) if args.json else f"Validated {len(items)} authoring assets; {checks} profile checks")
