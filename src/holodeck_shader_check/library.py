@@ -189,11 +189,25 @@ class Library(Authoring):
             file.write_bytes(source.encode('utf-8'))
             for sdk in ('macosx', 'appletvos'):
                 try:
-                    subprocess.run(['xcrun', '-sdk', sdk, 'metal', '-c', str(file), '-o', str(pathlib.Path(temp) / f'{sdk}.air')],
-                                   check=True, stdin=subprocess.DEVNULL, timeout=60)
+                    result = subprocess.run(['xcrun', '-sdk', sdk, 'metal', '-c', str(file), '-o', str(pathlib.Path(temp) / f'{sdk}.air')],
+                                            capture_output=True, stdin=subprocess.DEVNULL, timeout=60)
+                    if result.returncode:
+                        diagnostic = (result.stdout + result.stderr).decode('utf-8', errors='replace')[-8000:]
+                        raise ValueError(f'Metal compilation failed for {label} ({sdk}): {diagnostic}')
                 except subprocess.TimeoutExpired as error:
                     raise ToolingError(f'Metal compilation timed out for {label} ({sdk}) after 60 seconds') from error
 
+
+    def validate_item(self, item, compile_metal=False, *, source=None, label=None):
+        spec, asset_id = item['specification'], item['id']
+        if not isinstance(spec, dict) or not self.valid_id(asset_id) or spec.get('id') != asset_id:
+            raise ValueError(f'Invalid asset ID: {asset_id}')
+        if item['kind'] == 'shader':
+            if source is None: source = self.shader_entry(asset_id, metadata=spec)[1]
+        elif item['kind'] == 'snippet': source = self.snippet_source(item)
+        else: self.validate_reference(item)
+        if compile_metal and source is not None: self.compile_source(source, label or asset_id)
+        return source
 
     def validate(self, compile_metal=False):
         _, shaders = self.entries()
@@ -201,18 +215,12 @@ class Library(Authoring):
         shader_sources = {entry[0]['id']: entry[1] for entry in shaders}
         items = self.assets(shader_metadata=shader_metadata)
         for item in items:
-            if item['kind'] == 'shader':
-                source = self.shader_entry(item['id'], metadata=item['specification'])[1] if item['id'] not in shader_metadata else shader_sources[item['id']]
-                if compile_metal:
-                    self.compile_source(source, item['id'])
-            elif item['kind'] == 'snippet':
-                source = self.snippet_source(item)
-                if compile_metal:
-                    self.compile_source(source, item['id'])
-            else:
-                self.validate_reference(item)
+            self.validate_item(item, compile_metal, source=shader_sources.get(item['id']) if item['kind'] == 'shader' else None)
+        from .licenses import audit_notices
+        configuration = self.configuration()
+        audit_notices(self, configuration['sourceRequirements'], configuration['upstreamRequirements'], items=items, shaders=shaders)
         from .templates import validate_templates
-        validate_templates(self, compile_metal)
+        validate_templates(self, compile_metal, items=items, configuration=configuration)
         return items
 
     def render(self, kind, asset_id, times, width=1280, height=720, output_dir=None):

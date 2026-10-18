@@ -3,6 +3,7 @@ import hashlib
 import json
 import pathlib
 import re
+from .inputs import InputReader
 
 MOODS = {"calm", "dreamy", "energetic"}
 MOTIONS = {"slow", "steady", "fast"}
@@ -19,7 +20,8 @@ def unique_object(pairs):
 
 class Authoring:
     def __init__(self, root):
-        self.root = pathlib.Path(root).resolve(strict=True)
+        self._input_root = pathlib.Path(root).absolute()
+        self.root = self._input_root.resolve(strict=True)
         if not self.root.is_dir():
             raise ValueError("Library root must be a directory")
 
@@ -86,14 +88,20 @@ class Authoring:
     def digest(self, data):
         return hashlib.sha256(data).hexdigest()
 
+    def read_bytes(self, path):
+        try: relative = path.relative_to(self.root)
+        except ValueError: relative = path.relative_to(self._input_root)
+        with InputReader(self.root) as reader:
+            return reader.read(relative.as_posix())
+
     def read_source(self, path):
         try:
-            return path.read_bytes().decode('utf-8')
+            return self.read_bytes(path).decode('utf-8')
         except UnicodeDecodeError as error:
             raise ValueError(f'Invalid UTF-8 source {path}: {error}') from error
 
     def read_json(self, path):
-        return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
+        return json.loads(self.read_bytes(path).decode('utf-8'), object_pairs_hook=unique_object)
 
     def entries(self):
         index = self.read_json(self.root / 'index.json')
